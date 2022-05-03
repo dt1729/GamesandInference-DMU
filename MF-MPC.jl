@@ -15,6 +15,16 @@ model = Model(Ipopt.Optimizer)
 # set_optimizer_attribute(model, "algorithm", :AUGLAG)
 # set_optimizer_attribute(model, "local_optimizer", :LD_LBFGS)
 
+function bicycle_dynamics_solver(prev_state, controls, delta_t)
+    new_state = [0.0,0.0,0.,0.]
+    l = 3
+    new_state[1] = prev_state[1] + prev_state[4]*cos(prev_state[3])
+    new_state[2] = prev_state[2] + prev_state[4]*sin(prev_state[3])
+    new_state[3] = prev_state[3] + controls[1]
+    new_state[4] = prev_state[4] + controls[2]
+    return new_state
+end
+
 d = 10
 n_agents = (5) #agent states for Unicycle model: 4* number of agents you want to take 
 n_states = 4*n_agents
@@ -51,15 +61,32 @@ for constraint_cnt = 1:4:n_states
         @NLconstraint(model, [i=2:d], ((s[j,i-1] - s[constraint_cnt,i-1])^2 + (s[j+1,i-1] - s[constraint_cnt+1,i-1])^2) >=  4)
     end
 end
+
 print(state_mid, "\n")
 # initial condition
 @constraint(model, s[1:n_states,1] .== current_state)
 # obstacle
 # @constraint(model, [i=1:d], sum((s[1:2,i] - obstacle).^2) ≥ 4)
+
 @objective(model, Min, 100*sum((s[:,d] - goal).^2) + sum(angular_vel.^2) + sum(vel.^2))
+
+
+
 optimize!(model)
 angular_vel_val = value.(angular_vel)
 vel_val = value.(vel)
 states = value.(s)
 action_1 = SVector{n_agents,Float64}(angular_vel_val[:,1])
 action_2 = SVector{n_agents,Float64}(vel_val[:,1])
+
+for _ = 0:delta_T:T
+    global angular_vel, vel
+    optimize!(model)
+    angular_vel_val = value.(angular_vel)
+    vel_val = value.(vel)
+    states = value.(s)
+    action_1 = SVector{n_agents,Float64}(angular_vel_val[:,1])
+    action_2 = SVector{n_agents,Float64}(vel_val[:,1])
+
+    
+end

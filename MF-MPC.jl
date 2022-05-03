@@ -27,8 +27,8 @@ state_mid = Int(round(n_states/2))
 state_quater = Int(round(n_states/4))
 @variables model begin
 s[1:n_states, 1:d]
--pi/4 <= angular_vel[1:Int(round(state_mid/2)),1:d] <= pi/4
--3 <= vel[1:Int(round(state_mid/2)),1:d] <= 3
+-pi/4 <= angular_vel[1:n_agents,1:d] <= pi/4
+-3 <= vel[1:n_agents,1:d] <= 3
 end
 
 # velocity update
@@ -58,13 +58,8 @@ print(state_mid, "\n")
 # @constraint(model, [i=1:d], sum((s[1:2,i] - obstacle).^2) ≥ 4)
 @objective(model, Min, 100*sum((s[:,d] - goal).^2) + sum(angular_vel.^2) + sum(vel.^2))
 optimize!(model)
-@time for counter = 1:10
-    global states = value.(s)
-    global current_state = states[:,counter]
-    @time optimize!(model)
-end
 angular_vel_val = value.(angular_vel)
 vel_val = value.(vel)
 states = value.(s)
-@infiltrate
-@show states
+action_1 = SVector{n_agents,Float64}(angular_vel_val[:,1])
+action_2 = SVector{n_agents,Float64}(vel_val[:,1])
